@@ -11,17 +11,10 @@ import { ProjectsPage } from './pages/Projects';
 import { SettingsPage } from './pages/Settings';
 import { DeliveryPage } from './pages/Delivery';
 
-// Wrapper to prevent access to login page if already logged in
-const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
-  return user ? <Navigate to="/" /> : <>{children}</>;
-};
-
 const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-      
       <Route path="/" element={<Layout><Dashboard /></Layout>} />
       <Route path="/materials" element={<Layout><MaterialsPage /></Layout>} />
       <Route path="/schedules" element={<Layout><SchedulesPage /></Layout>} />
