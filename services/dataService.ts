@@ -2,13 +2,27 @@ import { MOCK_USERS, MOCK_PROJECTS, MOCK_MATERIALS, MOCK_TRANSACTIONS } from './
 import { User, Project, Material, WorkerSchedule, Meeting, MaterialTransaction } from '../types';
 
 // Helper to simulate local storage persistence
+// Now includes robust error handling
 const load = <T,>(key: string, defaultVal: T): T => {
   const stored = localStorage.getItem(key);
-  return stored ? JSON.parse(stored) : defaultVal;
+  if (!stored) return defaultVal;
+  try {
+    const parsed = JSON.parse(stored);
+    // Basic check to ensure we didn't load null or undefined
+    return parsed || defaultVal;
+  } catch (e) {
+    console.warn(`Error loading ${key} from localStorage. Resetting to default.`, e);
+    // If data is corrupt, return default to prevent app crash
+    return defaultVal;
+  }
 };
 
 const save = (key: string, data: any) => {
-  localStorage.setItem(key, JSON.stringify(data));
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (e) {
+    console.error("Failed to save to localStorage", e);
+  }
 };
 
 export const DataService = {
