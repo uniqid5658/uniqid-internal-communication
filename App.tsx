@@ -7,6 +7,9 @@ import { Dashboard } from './pages/Dashboard';
 import { MaterialsPage } from './pages/Materials';
 import { SchedulesPage } from './pages/Schedules';
 import { MeetingsPage } from './pages/Meetings';
+import { ProjectsPage } from './pages/Projects';
+import { SettingsPage } from './pages/Settings';
+import { DeliveryPage } from './pages/Delivery';
 
 // Wrapper to prevent access to login page if already logged in
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -23,7 +26,9 @@ const AppRoutes = () => {
       <Route path="/materials" element={<Layout><MaterialsPage /></Layout>} />
       <Route path="/schedules" element={<Layout><SchedulesPage /></Layout>} />
       <Route path="/meetings" element={<Layout><MeetingsPage /></Layout>} />
-      <Route path="/projects" element={<Layout><div className="p-4 text-gray-500">Projects module placeholder</div></Layout>} />
+      <Route path="/projects" element={<Layout><ProjectsPage /></Layout>} />
+      <Route path="/settings" element={<Layout><SettingsPage /></Layout>} />
+      <Route path="/delivery" element={<Layout><DeliveryPage /></Layout>} />
       
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>

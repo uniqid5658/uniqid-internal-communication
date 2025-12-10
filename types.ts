@@ -1,6 +1,8 @@
+
 export enum Role {
   ADMIN = 'ADMIN',
   STAFF = 'STAFF',
+  DRIVER = 'DRIVER',
 }
 
 export enum ProjectStatus {
@@ -13,7 +15,10 @@ export enum MaterialTransactionType {
   IN = 'IN',
   OUT = 'OUT',
   ADJUST = 'ADJUST',
+  CHECK = 'CHECK', // Added for snapshot updates
 }
+
+export type DeliveryStatus = 'PENDING' | 'IN_TRANSIT' | 'DELIVERED';
 
 export interface User {
   id: string;
@@ -22,6 +27,7 @@ export interface User {
   phone: string;
   role: Role;
   avatarUrl?: string;
+  password?: string; // Added for auth
 }
 
 export interface Project {
@@ -38,6 +44,8 @@ export interface Material {
   id: string;
   name: string;
   category: string;
+  brand?: string; // Added
+  location?: string; // Added (e.g. Warehouse Rack)
   unit: string;
   currentStock: number;
   minStockLevel: number;
@@ -53,6 +61,7 @@ export interface MaterialTransaction {
   performedBy: string; // User ID
   memo: string;
   createdAt: string;
+  deliveryStatus?: DeliveryStatus; // Added for Delivery module
 }
 
 export interface WorkerSchedule {
@@ -65,13 +74,15 @@ export interface WorkerSchedule {
   notes: string;
 }
 
+export type MeetingType = 'STAFF' | 'CLIENT' | 'TRADE' | 'SUPPLY';
+
 export interface Meeting {
   id: string;
   title: string;
   description: string;
   projectId?: string;
-  isClientMeeting: boolean;
-  meetingType: 'INTERNAL' | 'CLIENT' | 'SUPPLIER';
+  meetingType: MeetingType; 
+  participantIds: string[]; // Changed from isClientMeeting to specific list
   startDatetime: string;
   endDatetime: string;
   location: string;

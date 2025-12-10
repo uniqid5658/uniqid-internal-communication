@@ -1,4 +1,4 @@
-import { MOCK_USERS, MOCK_PROJECTS, MOCK_MATERIALS } from './mockData';
+import { MOCK_USERS, MOCK_PROJECTS, MOCK_MATERIALS, MOCK_TRANSACTIONS } from './mockData';
 import { User, Project, Material, WorkerSchedule, Meeting, MaterialTransaction } from '../types';
 
 // Helper to simulate local storage persistence
@@ -13,8 +13,36 @@ const save = (key: string, data: any) => {
 
 export const DataService = {
   getUsers: (): User[] => load('users', MOCK_USERS),
+  saveUser: (user: User) => {
+    const users = DataService.getUsers();
+    const existingIndex = users.findIndex(u => u.id === user.id);
+    if (existingIndex >= 0) {
+      users[existingIndex] = user;
+    } else {
+      users.push(user);
+    }
+    save('users', users);
+  },
+  deleteUser: (id: string) => {
+    const users = DataService.getUsers().filter(u => u.id !== id);
+    save('users', users);
+  },
   
   getProjects: (): Project[] => load('projects', MOCK_PROJECTS),
+  saveProject: (project: Project) => {
+    const projects = DataService.getProjects();
+    const existingIndex = projects.findIndex(p => p.id === project.id);
+    if (existingIndex >= 0) {
+      projects[existingIndex] = project;
+    } else {
+      projects.push(project);
+    }
+    save('projects', projects);
+  },
+  deleteProject: (id: string) => {
+    const projects = DataService.getProjects().filter(p => p.id !== id);
+    save('projects', projects);
+  },
   
   getMaterials: (): Material[] => load('materials', MOCK_MATERIALS),
   saveMaterial: (material: Material) => {
@@ -30,6 +58,58 @@ export const DataService = {
   deleteMaterial: (id: string) => {
     const materials = DataService.getMaterials().filter(m => m.id !== id);
     save('materials', materials);
+  },
+
+  getTransactions: (): MaterialTransaction[] => load('transactions', MOCK_TRANSACTIONS),
+  
+  // Updated to support History Isolation (skipGlobalUpdate)
+  saveTransaction: (transaction: MaterialTransaction, skipGlobalUpdate: boolean = false) => {
+    const transactions = DataService.getTransactions();
+    // Check if update or new
+    const existingIndex = transactions.findIndex(t => t.id === transaction.id);
+    
+    if (existingIndex >= 0) {
+        transactions[existingIndex] = transaction;
+    } else {
+        transactions.push(transaction);
+    }
+    save('transactions', transactions);
+
+    if (!skipGlobalUpdate) {
+        // Also update material stock
+        const materials = DataService.getMaterials();
+        const materialIndex = materials.findIndex(m => m.id === transaction.materialId);
+        if (materialIndex >= 0) {
+            if (transaction.type === 'IN') {
+                materials[materialIndex].currentStock += transaction.quantity;
+            } else if (transaction.type === 'OUT') {
+                materials[materialIndex].currentStock -= transaction.quantity;
+            }
+            save('materials', materials);
+        }
+    }
+  },
+
+  deleteTransaction: (id: string, skipGlobalUpdate: boolean = false) => {
+      const transactions = DataService.getTransactions();
+      const tx = transactions.find(t => t.id === id);
+      const newTransactions = transactions.filter(t => t.id !== id);
+      save('transactions', newTransactions);
+
+      if (!skipGlobalUpdate && tx) {
+          // Reverse the effect on stock
+          const materials = DataService.getMaterials();
+          const materialIndex = materials.findIndex(m => m.id === tx.materialId);
+          if (materialIndex >= 0) {
+               // If we deleted an 'OUT' (Allocation), we put it back (IN)
+               if (tx.type === 'OUT') {
+                   materials[materialIndex].currentStock += tx.quantity;
+               } else if (tx.type === 'IN') {
+                   materials[materialIndex].currentStock -= tx.quantity;
+               }
+               save('materials', materials);
+          }
+      }
   },
 
   getSchedules: (): WorkerSchedule[] => load('schedules', []),
@@ -59,8 +139,11 @@ export const DataService = {
     }
     save('meetings', meetings);
   },
+  deleteMeeting: (id: string) => {
+    const meetings = DataService.getMeetings().filter(m => m.id !== id);
+    save('meetings', meetings);
+  },
 
-  // Helper to join data for UI
   getEnrichedSchedules: () => {
     const schedules = DataService.getSchedules();
     const users = DataService.getUsers();

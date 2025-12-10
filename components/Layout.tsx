@@ -11,7 +11,8 @@ import {
   Briefcase, 
   Menu,
   X,
-  Bell
+  Settings,
+  Truck
 } from 'lucide-react';
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -25,9 +26,14 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     { label: 'Dashboard', path: '/', icon: LayoutDashboard },
     { label: 'Projects', path: '/projects', icon: Briefcase },
     { label: 'Materials', path: '/materials', icon: Package },
+    { label: 'Delivery', path: '/delivery', icon: Truck },
     { label: 'Schedules', path: '/schedules', icon: Calendar },
     { label: 'Meetings', path: '/meetings', icon: Users },
   ];
+
+  if (user.role === Role.ADMIN) {
+      navItems.push({ label: 'Settings', path: '/settings', icon: Settings });
+  }
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -82,8 +88,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
              <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
                 {user.name.charAt(0)}
              </div>
-             <div className="ml-3">
-               <p className="text-sm font-medium text-white">{user.name}</p>
+             <div className="ml-3 overflow-hidden">
+               <p className="text-sm font-medium text-white truncate">{user.name}</p>
                <p className="text-xs text-gray-400">{user.role}</p>
              </div>
           </div>

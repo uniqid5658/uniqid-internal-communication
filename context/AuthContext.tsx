@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Role } from '../types';
-import { MOCK_USERS } from '../services/mockData';
+import { DataService } from '../services/dataService';
 
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<boolean>;
+  signup: (userData: Omit<User, 'id' | 'role' | 'avatarUrl'>) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -24,18 +25,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, pass: string): Promise<boolean> => {
-    // Simple mock auth
-    const foundUser = MOCK_USERS.find(u => u.email === email);
-    if (foundUser) {
-        // In real app, check password hash here
-        if ((foundUser.role === Role.ADMIN && pass === 'admin123') || 
-            (foundUser.role === Role.STAFF && pass === 'staff123')) {
-            setUser(foundUser);
-            localStorage.setItem('uniqid_user', JSON.stringify(foundUser));
-            return true;
-        }
+    const users = DataService.getUsers();
+    const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    
+    if (foundUser && foundUser.password === pass) {
+      setUser(foundUser);
+      localStorage.setItem('uniqid_user', JSON.stringify(foundUser));
+      return true;
     }
     return false;
+  };
+
+  const signup = async (userData: Omit<User, 'id' | 'role' | 'avatarUrl'>): Promise<boolean> => {
+    const users = DataService.getUsers();
+    if (users.some(u => u.email.toLowerCase() === userData.email.toLowerCase())) {
+        return false; // Email exists
+    }
+
+    const newUser: User = {
+        id: Date.now().toString(),
+        role: Role.STAFF, // Default role
+        avatarUrl: `https://ui-avatars.com/api/?name=${userData.name}`,
+        ...userData
+    };
+
+    DataService.saveUser(newUser);
+    // Auto login
+    setUser(newUser);
+    localStorage.setItem('uniqid_user', JSON.stringify(newUser));
+    return true;
   };
 
   const logout = () => {
@@ -44,7 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, signup, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
