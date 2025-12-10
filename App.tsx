@@ -32,7 +32,7 @@ const App: React.FC = () => {
   return (
     <AuthProvider>
       <Router>
-        <AppRoutes />
+       <AppRoutes></AppRoutes>
       </Router>
     </AuthProvider>
   );
