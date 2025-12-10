@@ -43,7 +43,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
             </div>
             <h2 className="text-xl font-bold text-gray-900 mb-2">Application Error</h2>
             <p className="text-gray-500 mb-6 text-sm">
-              The application encountered an unexpected error. This is usually caused by outdated data stored in your browser.
+              The application encountered an unexpected error. This is usually caused by outdated data stored in your browser or a connection issue.
             </p>
             
             <div className="bg-gray-50 p-3 rounded text-left mb-6 overflow-auto max-h-32">
