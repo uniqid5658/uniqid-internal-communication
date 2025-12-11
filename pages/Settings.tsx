@@ -1,147 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { DataService } from '../services/dataService';
-import { User, Role } from '../types';
+import { Role, User } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { Navigate } from 'react-router-dom';
-import { Shield, Save, Trash2, RefreshCw } from 'lucide-react';
+import { Save, Trash2, Database } from 'lucide-react';
 
 export const SettingsPage: React.FC = () => {
   const { user } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
-  const [changedUsers, setChangedUsers] = useState<Set<string>>(new Set());
+  
+  useEffect(() => { loadData(); }, []);
+  const loadData = async () => { setUsers(await DataService.getUsers()); };
 
-  useEffect(() => {
-    loadUsers();
-  }, []);
-
-  const loadUsers = () => {
-    const loadedUsers = DataService.getUsers();
-    setUsers(loadedUsers);
-  };
-
-  if (user?.role !== Role.ADMIN) {
-      return <Navigate to="/" />;
-  }
-
-  const handleRoleChange = (userId: string, newRole: Role) => {
-      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
-      setChangedUsers(prev => new Set(prev).add(userId));
-  };
-
-  const saveChanges = (userId: string) => {
-      const userToSave = users.find(u => u.id === userId);
-      if (userToSave) {
-          DataService.saveUser(userToSave);
-          const newSet = new Set(changedUsers);
-          newSet.delete(userId);
-          setChangedUsers(newSet);
-          alert(`Updated role for ${userToSave.name}`);
-      }
-  };
-
-  const handleDeleteUser = (userId: string) => {
-    if (userId === user?.id) {
-        alert("You cannot delete your own account.");
-        return;
-    }
-    if (window.confirm("Are you sure you want to delete this user? This cannot be undone.")) {
-        DataService.deleteUser(userId);
-        setUsers(prev => prev.filter(u => u.id !== userId));
-    }
-  };
-
-  // Analog Avatar Helper
-  const getInitials = (name: string) => name.charAt(0).toUpperCase();
+  if (user?.role !== Role.ADMIN) return <Navigate to="/" />;
+  const save = async (uid: string, role: Role) => { await DataService.saveUser({...users.find(u=>u.id===uid)!, role}); alert('Saved'); loadData(); };
+  const del = async (uid: string) => { if(confirm('Delete?')) { await DataService.deleteUser(uid); loadData(); }};
+  const handleSeed = async () => { if(confirm("This will upload mock data to Firebase. Continue?")) { await DataService.seedDatabase(); loadData(); alert("Seeding Complete!"); }};
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Admin Settings</h1>
-          <p className="text-gray-500 text-sm">Manage user access and system preferences.</p>
-        </div>
-        <button 
-          onClick={loadUsers} 
-          className="flex items-center text-sm text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-2 rounded-md transition-colors"
-        >
-          <RefreshCw size={16} className="mr-2" /> Refresh List
-        </button>
-      </div>
-
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-           <h2 className="text-lg font-medium text-gray-900 flex items-center">
-              <Shield className="mr-2 text-blue-600" size={20} /> User Management
-           </h2>
-        </div>
-        <div className="overflow-x-auto">
-           <table className="min-w-full divide-y divide-gray-200">
-             <thead className="bg-white">
-                <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                    <th className="px-6 py-3 text-right">Actions</th>
-                </tr>
-             </thead>
-             <tbody className="divide-y divide-gray-200 bg-white">
-                {users.map(u => (
-                    <tr key={u.id}>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                                {/* Analog Avatar */}
-                                <div className="h-8 w-8 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center font-bold text-xs">
-                                    {getInitials(u.name)}
-                                </div>
-                                <div className="ml-3">
-                                    <div className="text-sm font-medium text-gray-900">{u.name}</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{u.email}</div>
-                            <div className="text-xs text-gray-500">{u.phone}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                            <select 
-                                className="text-sm border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                                value={u.role}
-                                disabled={u.id === user?.id} // Cannot change own role
-                                onChange={(e) => handleRoleChange(u.id, e.target.value as Role)}
-                            >
-                                <option value={Role.ADMIN}>Admin</option>
-                                <option value={Role.STAFF}>Staff</option>
-                                <option value={Role.DRIVER}>Driver</option>
-                            </select>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <div className="flex justify-end space-x-3">
-                                {changedUsers.has(u.id) && (
-                                    <button 
-                                        onClick={() => saveChanges(u.id)}
-                                        className="text-green-600 hover:text-green-900 flex items-center"
-                                        title="Save Changes"
-                                    >
-                                        <Save size={16} className="mr-1" /> Save
-                                    </button>
-                                )}
-                                {u.id !== user?.id && (
-                                    <button 
-                                        onClick={() => handleDeleteUser(u.id)}
-                                        className="text-red-500 hover:text-red-700 flex items-center"
-                                        title="Delete User"
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
-                                )}
-                            </div>
-                        </td>
-                    </tr>
-                ))}
-             </tbody>
-           </table>
-        </div>
-      </div>
+      <div className="flex justify-between"><h1 className="text-2xl font-bold">Settings</h1><button onClick={handleSeed} className="flex items-center text-sm bg-gray-100 px-3 py-2 rounded hover:bg-gray-200"><Database size={16} className="mr-2"/> Seed Database</button></div>
+      <table className="min-w-full bg-white rounded shadow">
+         <thead><tr><th className="p-3 text-left">User</th><th className="p-3">Role</th><th></th></tr></thead>
+         <tbody>{users.map(u => (<tr key={u.id} className="border-t"><td className="p-3">{u.name}</td><td className="p-3"><select value={u.role} onChange={e=>{ const list=[...users]; list.find(x=>x.id===u.id)!.role=e.target.value as Role; setUsers(list); }}><option value="ADMIN">Admin</option><option value="STAFF">Staff</option><option value="DRIVER">Driver</option></select></td><td className="p-3 text-right"><button onClick={()=>save(u.id, u.role)} className="mr-2 text-green-600"><Save size={16}/></button>{u.id!==user.id&&<button onClick={()=>del(u.id)} className="text-red-500"><Trash2 size={16}/></button>}</td></tr>))}</tbody>
+      </table>
     </div>
   );
 };
