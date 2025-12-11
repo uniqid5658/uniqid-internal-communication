@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Role } from '../types';
 import { DataService } from '../services/dataService';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../services/firebase';
 
 interface AuthContextType {
   user: User | null;
@@ -22,7 +24,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         setUser(JSON.parse(storedUser));
       } catch (e) {
-        console.error("Failed to parse stored user", e);
         localStorage.removeItem('uniqid_user');
       }
     }
@@ -30,35 +31,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, pass: string): Promise<boolean> => {
-    const users = DataService.getUsers();
-    const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    
-    if (foundUser && foundUser.password === pass) {
-      setUser(foundUser);
-      localStorage.setItem('uniqid_user', JSON.stringify(foundUser));
-      return true;
+    try {
+        const q = query(collection(db, 'users'), where('email', '==', email.toLowerCase()));
+        const snapshot = await getDocs(q);
+        
+        if (!snapshot.empty) {
+            const foundUser = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as User;
+            // Simple password check (In real app, use Firebase Auth)
+            if (foundUser.password === pass) {
+                setUser(foundUser);
+                localStorage.setItem('uniqid_user', JSON.stringify(foundUser));
+                return true;
+            }
+        }
+        return false;
+    } catch (e) {
+        console.error("Login error", e);
+        return false;
     }
-    return false;
   };
 
   const signup = async (userData: Omit<User, 'id' | 'role' | 'avatarUrl'>): Promise<boolean> => {
-    const users = DataService.getUsers();
-    if (users.some(u => u.email.toLowerCase() === userData.email.toLowerCase())) {
-        return false; // Email exists
+    try {
+        const q = query(collection(db, 'users'), where('email', '==', userData.email.toLowerCase()));
+        const snapshot = await getDocs(q);
+        
+        if (!snapshot.empty) return false; // Email exists
+
+        const newUser: User = {
+            id: Date.now().toString(),
+            role: Role.STAFF,
+            ...userData
+        };
+        await DataService.saveUser(newUser);
+        
+        setUser(newUser);
+        localStorage.setItem('uniqid_user', JSON.stringify(newUser));
+        return true;
+    } catch (e) {
+        console.error("Signup error", e);
+        return false;
     }
-
-    const newUser: User = {
-        id: Date.now().toString(),
-        role: Role.STAFF, // Default role
-        avatarUrl: `https://ui-avatars.com/api/?name=${userData.name}`,
-        ...userData
-    };
-
-    DataService.saveUser(newUser);
-    // Auto login
-    setUser(newUser);
-    localStorage.setItem('uniqid_user', JSON.stringify(newUser));
-    return true;
   };
 
   const logout = () => {
