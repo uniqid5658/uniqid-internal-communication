@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { DataService } from '../services/dataService';
 import { User, Role } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { Navigate } from 'react-router-dom';
-import { Shield, Save, Trash2 } from 'lucide-react';
+import { Shield, Save, Trash2, RefreshCw } from 'lucide-react';
 
 export const SettingsPage: React.FC = () => {
   const { user } = useAuth();
@@ -12,8 +11,13 @@ export const SettingsPage: React.FC = () => {
   const [changedUsers, setChangedUsers] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    setUsers(DataService.getUsers());
+    loadUsers();
   }, []);
+
+  const loadUsers = () => {
+    const loadedUsers = DataService.getUsers();
+    setUsers(loadedUsers);
+  };
 
   if (user?.role !== Role.ADMIN) {
       return <Navigate to="/" />;
@@ -46,11 +50,22 @@ export const SettingsPage: React.FC = () => {
     }
   };
 
+  // Analog Avatar Helper
+  const getInitials = (name: string) => name.charAt(0).toUpperCase();
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-800">Admin Settings</h1>
-        <p className="text-gray-500 text-sm">Manage user access and system preferences.</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Admin Settings</h1>
+          <p className="text-gray-500 text-sm">Manage user access and system preferences.</p>
+        </div>
+        <button 
+          onClick={loadUsers} 
+          className="flex items-center text-sm text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-2 rounded-md transition-colors"
+        >
+          <RefreshCw size={16} className="mr-2" /> Refresh List
+        </button>
       </div>
 
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
@@ -74,7 +89,10 @@ export const SettingsPage: React.FC = () => {
                     <tr key={u.id}>
                         <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
-                                <img src={u.avatarUrl} alt="" className="h-8 w-8 rounded-full bg-gray-200" />
+                                {/* Analog Avatar */}
+                                <div className="h-8 w-8 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center font-bold text-xs">
+                                    {getInitials(u.name)}
+                                </div>
                                 <div className="ml-3">
                                     <div className="text-sm font-medium text-gray-900">{u.name}</div>
                                 </div>
